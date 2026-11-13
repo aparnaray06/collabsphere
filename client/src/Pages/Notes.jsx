@@ -1,8 +1,14 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
+import MDEditor from "@uiw/react-md-editor";
+
 import noteService from "../Services/noteService";
 import projectService from "../Services/projectService";
+import geminiService from "../Services/geminiService";
+
+import "@uiw/react-md-editor/markdown-editor.css";
+import "@uiw/react-markdown-preview/markdown.css";
 
 export default function Notes() {
     const [notes, setNotes] = useState([]);
@@ -10,12 +16,16 @@ export default function Notes() {
 
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
+    const contentHistory = useRef([""]);
+    const historyIndex = useRef(0);
     const [project, setProject] = useState("");
     const [tags, setTags] = useState("");
 
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [aiLoading, setAiLoading] = useState("");
+    const [aiResult, setAiResult] = useState("");
     const [error, setError] = useState("");
 
     const [searchParams] = useSearchParams();
@@ -51,20 +61,55 @@ export default function Notes() {
         loadData();
     }, []);
 
+    function handleContentChange(value) {
+        const newContent = value || "";
+
+        const history = contentHistory.current;
+        const currentIndex = historyIndex.current;
+
+        if (history[currentIndex] === newContent) return;
+
+        const updatedHistory = history.slice(0, currentIndex + 1);
+        updatedHistory.push(newContent);
+
+        // Keep only the latest 100 changes
+        if (updatedHistory.length > 100) {
+            updatedHistory.shift();
+        }
+
+        contentHistory.current = updatedHistory;
+        historyIndex.current = updatedHistory.length - 1;
+
+        setContent(newContent);
+    }
+
+    function handleUndo() {
+        if (historyIndex.current === 0) return;
+
+        historyIndex.current -= 1;
+        setContent(contentHistory.current[historyIndex.current]);
+    }
+
     function resetForm() {
         setTitle("");
         setContent("");
+        contentHistory.current = [""];
+        historyIndex.current = 0;
         setProject("");
         setTags("");
         setEditingId(null);
+        setAiResult("");
     }
 
     function handleEdit(note) {
         setEditingId(note._id);
         setTitle(note.title || "");
         setContent(note.content || "");
+        contentHistory.current = [note.content || ""];
+        historyIndex.current = 0;
         setProject(note.project?._id || "");
         setTags((note.tags || []).join(", "));
+        setAiResult("");
     }
 
     async function handleSubmit(e) {
@@ -80,7 +125,10 @@ export default function Notes() {
             title: title.trim(),
             content,
             project: project || null,
-            tags: tags.split(",").map((tag) => tag.trim()).filter(Boolean),
+            tags: tags
+                .split(",")
+                .map((tag) => tag.trim())
+                .filter(Boolean),
         };
 
         try {
@@ -100,6 +148,52 @@ export default function Notes() {
             );
         } finally {
             setSaving(false);
+        }
+    }
+
+    async function handleExplain() {
+        if (!content.trim()) {
+            setError("Please write some note content first");
+            return;
+        }
+
+        try {
+            setError("");
+            setAiLoading("explain");
+            setAiResult("");
+
+            const data = await geminiService.explain(content);
+            setAiResult(data.explanation);
+        } catch (err) {
+            setError(
+                err.response?.data?.message ||
+                "Could not explain this note"
+            );
+        } finally {
+            setAiLoading("");
+        }
+    }
+
+    async function handleSuggestImprovements() {
+        if (!content.trim()) {
+            setError("Please write some note content first");
+            return;
+        }
+
+        try {
+            setError("");
+            setAiLoading("improve");
+            setAiResult("");
+
+            const data = await geminiService.suggestImprovements(content);
+            setAiResult(data.reply);
+        } catch (err) {
+            setError(
+                err.response?.data?.message ||
+                "Could not suggest improvements"
+            );
+        } finally {
+            setAiLoading("");
         }
     }
 
@@ -151,22 +245,68 @@ export default function Notes() {
                     required
                 />
 
-                <label htmlFor="note-content">Content</label>
-                <textarea
-                    id="note-content"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="Write your note..."
-                    rows={5}
-                />
+                <label htmlFor="note-content">Content (Markdown supported)</label>
+
+                <div data-color-mode="light">
+                    <MDEditor
+                        value={content}
+                        onChange={handleContentChange}
+                        preview="edit"
+                        height={300}
+                        textareaProps={{
+                            placeholder:
+                                "Write your note using Markdown...",
+                        }}
+                    />
+
+                    <button
+                        type="button"
+                        onClick={handleUndo}
+                        disabled={historyIndex.current === 0}
+                    >
+                        Undo
+                    </button>
+                </div>
+
+                <div className="button-group">
+                    <button
+                        type="button"
+                        onClick={handleExplain}
+                        disabled={Boolean(aiLoading) || !content.trim()}
+                    >
+                        {aiLoading === "explain"
+                            ? "Explaining..."
+                            : "Explain this note"}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={handleSuggestImprovements}
+                        disabled={Boolean(aiLoading) || !content.trim()}
+                    >
+                        {aiLoading === "improve"
+                            ? "Getting suggestions..."
+                            : "Suggest improvements"}
+                    </button>
+                </div>
+
+                {aiResult && (
+                    <div className="form-card">
+                        <h3>Gemini AI Response</h3>
+                        <div data-color-mode="light">
+                            <MDEditor.Markdown source={aiResult} />
+                        </div>
+                    </div>
+                )}
 
                 <label htmlFor="note-project">Related Project</label>
                 <select
                     id="note-project"
                     value={project}
                     onChange={(e) => setProject(e.target.value)}
+                    required
                 >
-                    <option value="">No project</option>
+                    <option value="">Select a project</option>
 
                     {projects.map((item) => (
                         <option key={item._id} value={item._id}>
@@ -213,7 +353,15 @@ export default function Notes() {
                         <article className="note-card" key={note._id}>
                             <h3>{note.title}</h3>
 
-                            <p>{note.content || "No content added."}</p>
+                            <div data-color-mode="light">
+                                {note.content ? (
+                                    <MDEditor.Markdown
+                                        source={note.content}
+                                    />
+                                ) : (
+                                    <p>No content added.</p>
+                                )}
+                            </div>
 
                             <p>
                                 Project: {note.project?.title || "No project"}

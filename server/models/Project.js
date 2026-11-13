@@ -37,6 +37,15 @@ const projectSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    isPublic: {
+      type: Boolean,
+      default: false,
+    },
+    shareToken: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
   },
   { timestamps: true }
 );

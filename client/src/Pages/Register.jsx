@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../Context/AuthContext";
+import { ArrowRight, Layers3, ShieldCheck, Users } from "lucide-react";
 
 export default function Register() {
   const { register } = useAuth();
@@ -42,57 +43,109 @@ export default function Register() {
 
   return (
     <main className="auth-page">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <p className="eyebrow">COLLABSPHERE</p>
-        <h1>Create your account</h1>
-        <p>Bring your projects, notes and team together.</p>
+      <section className="auth-showcase">
+        <Link to="/" className="auth-logo">
+          <Layers3 size={27} />
+          <span>CollabSphere</span>
+        </Link>
 
-        {error && <div className="error-message">{error}</div>}
+        <div className="auth-showcase-content">
+          <span className="auth-tag">START SOMETHING GREAT</span>
+          <h1>
+            Great ideas
+            <br />
+            <span>start together.</span>
+          </h1>
+          <p>
+            Create your workspace, invite your team and turn
+            your ideas into meaningful projects.
+          </p>
 
-        <label htmlFor="name">Full name</label>
-        <input
-          id="name"
-          name="name"
-          value={form.name}
-          onChange={handleChange}
-          placeholder="Your name"
-          autoComplete="name"
-          required
-        />
+          <div className="auth-feature-list">
+            <div>
+              <Users size={19} />
+              <span>Work together with your team</span>
+            </div>
+            <div>
+              <Layers3 size={19} />
+              <span>Manage everything in one place</span>
+            </div>
+            <div>
+              <ShieldCheck size={19} />
+              <span>Your workspace, your control</span>
+            </div>
+          </div>
+        </div>
 
-        <label htmlFor="email">Email address</label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          value={form.email}
-          onChange={handleChange}
-          placeholder="you@example.com"
-          autoComplete="email"
-          required
-        />
+        <div className="auth-showcase-bottom">
+          <span>Made for people who build together.</span>
+          <span>© 2026 CollabSphere</span>
+        </div>
+      </section>
 
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          value={form.password}
-          onChange={handleChange}
-          placeholder="At least 8 characters"
-          autoComplete="new-password"
-          minLength={8}
-          required
-        />
+      <section className="auth-form-section">
+        <div className="auth-form-wrapper">
+          <div className="auth-mobile-logo">
+            <Layers3 size={25} />
+            <span>CollabSphere</span>
+          </div>
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Creating account..." : "Create account"}
-        </button>
+          <div className="auth-heading">
+            <span className="auth-welcome">GET STARTED</span>
+            <h2>Create your account</h2>
+            <p>Fill in your details to create your workspace account.</p>
+          </div>
 
-        <p className="auth-footer">
-          Already registered? <Link to="/login">Sign in</Link>
-        </p>
-      </form>
+          {error && <div className="error-message">{error}</div>}
+
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <label htmlFor="name">Full name</label>
+            <input
+              id="name"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="Enter your full name"
+              autoComplete="name"
+              required
+            />
+
+            <label htmlFor="email">Email address</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="name@example.com"
+              autoComplete="email"
+              required
+            />
+
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="Minimum 8 characters"
+              autoComplete="new-password"
+              minLength={8}
+              required
+            />
+
+            <button type="submit" disabled={loading}>
+              {loading ? "Creating account..." : "Create account"}
+              {!loading && <ArrowRight size={18} />}
+            </button>
+          </form>
+
+          <p className="auth-footer">
+            Already have an account? <Link to="/login">Sign in</Link>
+          </p>
+        </div>
+      </section>
     </main>
   );
 }

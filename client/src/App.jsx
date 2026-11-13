@@ -1,8 +1,9 @@
-
 import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./Components/ProtectedRoute";
 import MinLayout from "./Layouts/MinLayout";
 import { useAuth } from "./Context/AuthContext";
+
+import PublicProject from "./Pages/PublicProjects";
 
 import Login from "./Pages/Login";
 import Register from "./Pages/Register";
@@ -32,6 +33,11 @@ export default function App() {
 
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+
+      <Route
+        path="/public/projects/:token"
+        element={<PublicProject />}
+      />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<MinLayout />}>

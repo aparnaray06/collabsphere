@@ -20,7 +20,7 @@ const noteSchema = new mongoose.Schema(
     project: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Project",
-      default: null,
+      required: true,
     },
     tags: {
       type: [String],
